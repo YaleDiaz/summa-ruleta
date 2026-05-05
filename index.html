@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUMMA — SORTEO ÉLITE</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Bebas+Neue&family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #000000;
+    --white: #ffffff;
+    --purple: #7c5cbf;
+    --purple-light: #a87fe8;
+    --purple-dim: #3a2860;
+    --gray: #1a1a1a;
+    --gray-mid: #2e2e2e;
+    --gray-light: #555;
+    --accent: #c9a96e;
+  }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Montserrat', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* SCANLINES */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.012) 2px, rgba(255,255,255,0.012) 4px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 1100px;
+    padding: 32px 40px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #1c1c1c;
+    margin-bottom: 40px;
+  }
+
+  .logo-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .logo-main {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    letter-spacing: 14px;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--white);
+    line-height: 1;
+    user-select: none;
+  }
+
+  .logo-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 11px;
+    letter-spacing: 8px;
+    color: var(--gray-light);
+    text-transform: uppercase;
+    padding-bottom: 16px;
+  }
+
+  .header-tag {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--purple-light);
+    text-transform: uppercase;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--purple-dim);
+  }
+
+  /* MAIN LAYOUT */
+  main {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 1100px;
+    padding: 0 40px 60px;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 48px;
+    align-items: start;
+  }
+
+  /* WHEEL SECTION */
+  .wheel-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .wheel-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    letter-spacing: 6px;
+    color: var(--gray-light);
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .wheel-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Pointer */
+  .pointer {
+    position: absolute;
+    right: -18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 16px solid transparent;
+    border-bottom: 16px solid transparent;
+    border-right: 30px solid var(--white);
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.4));
+    z-index: 20;
+  }
+
+  canvas#wheel {
+    border-radius: 50%;
+    display: block;
+  }
+
+  /* Wheel center cap */
+  .wheel-cap {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--black);
+    border: 2px solid var(--gray-mid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+  }
+
+  .wheel-cap-inner {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--purple);
+  }
+
+  /* SPIN BUTTON */
+  .spin-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 6px;
+    color: var(--black);
+    background: var(--white);
+    border: none;
+    padding: 16px 56px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+
+  .spin-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--purple-light);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .spin-btn:hover::after { transform: translateX(0); }
+  .spin-btn:hover { color: var(--white); }
+  .spin-btn span { position: relative; z-index: 1; }
+  .spin-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .spin-btn:disabled::after { display: none; }
+
+  /* PARTICIPANTS PANEL */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-top: 4px;
+  }
+
+  .panel-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: var(--gray-light);
+    text-transform: uppercase;
+    border-bottom: 1px solid #1c1c1c;
+    padding-bottom: 12px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .name-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--gray-mid);
+    color: var(--white);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    padding: 10px 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .name-input::placeholder { color: var(--gray-light); }
+  .name-input:focus { border-bottom-color: var(--purple-light); }
+
+  .add-btn {
+    background: transparent;
+    border: 1px solid var(--gray-mid);
+    color: var(--white);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    padding: 8px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .add-btn:hover { border-color: var(--purple-light); color: var(--purple-light); }
+
+  /* BULK ADD */
+  .bulk-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .bulk-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--gray-light);
+    text-transform: uppercase;
+  }
+
+  .bulk-input {
+    background: #0d0d0d;
+    border: 1px solid #1c1c1c;
+    color: var(--white);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding: 10px 12px;
+    outline: none;
+    resize: vertical;
+    min-height: 90px;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  .bulk-input:focus { border-color: var(--gray-mid); }
+
+  .bulk-btn {
+    background: transparent;
+    border: 1px solid #1c1c1c;
+    color: var(--gray-light);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    align-self: flex-start;
+  }
+
+  .bulk-btn:hover { border-color: var(--purple-dim); color: var(--purple-light); }
+
+  /* LIST */
+  .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .count-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--purple-light);
+  }
+
+  .clear-btn {
+    background: none;
+    border: none;
+    color: var(--gray-light);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .clear-btn:hover { color: #c0392b; }
+
+  .names-list {
+    max-height: 280px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gray-mid) transparent;
+  }
+
+  .name-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #0a0a0a;
+    border-left: 2px solid transparent;
+    font-size: 12px;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .name-item:hover { border-left-color: var(--purple); background: #111; }
+
+  .name-idx {
+    color: var(--gray-light);
+    font-size: 10px;
+    letter-spacing: 2px;
+    margin-right: 10px;
+    min-width: 22px;
+  }
+
+  .name-text { flex: 1; }
+
+  .remove-btn {
+    background: none;
+    border: none;
+    color: #333;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    transition: color 0.2s;
+    padding: 0 4px;
+  }
+
+  .remove-btn:hover { color: #c0392b; }
+
+  /* WINNER MODAL */
+  #winner-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  #winner-overlay.show {
+    display: flex;
+    animation: fadeInOverlay 0.5s ease;
+  }
+
+  @keyframes fadeInOverlay {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+
+  .winner-card {
+    border: 1px solid var(--gray-mid);
+    padding: 56px 72px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    max-width: 560px;
+    width: 90%;
+    background: #020202;
+    animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .winner-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--purple-light), transparent);
+  }
+
+  @keyframes scaleIn {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .winner-tag {
+    font-size: 10px;
+    letter-spacing: 8px;
+    color: var(--purple-light);
+    text-transform: uppercase;
+  }
+
+  .winner-divider {
+    width: 40px;
+    height: 1px;
+    background: var(--gray-mid);
+  }
+
+  .winner-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    letter-spacing: 6px;
+    color: var(--white);
+    line-height: 1;
+    word-break: break-word;
+    text-align: center;
+    animation: shimmer 2s ease infinite alternate;
+  }
+
+  @keyframes shimmer {
+    0% { color: var(--white); }
+    100% { color: var(--purple-light); }
+  }
+
+  .winner-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--gray-light);
+    text-transform: uppercase;
+  }
+
+  .close-winner {
+    background: transparent;
+    border: 1px solid var(--gray-mid);
+    color: var(--white);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 4px;
+    padding: 12px 40px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+  }
+
+  .close-winner:hover { border-color: var(--purple); color: var(--purple-light); }
+
+  /* CONFETTI */
+  #confetti-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* EMPTY STATE */
+  .empty-wheel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: var(--gray-light);
+    text-transform: uppercase;
+  }
+
+  /* STATUS */
+  .status-line {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--gray-light);
+    text-transform: uppercase;
+    text-align: center;
+    min-height: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrapper">
+    <div class="logo-main">SUMMA</div>
+    <div class="logo-sub">Clothes</div>
+  </div>
+  <div class="header-tag">Sorteo Élite</div>
+</header>
+
+<main>
+  <!-- WHEEL -->
+  <div class="wheel-section">
+    <div class="wheel-title">Ruleta del Sorteo</div>
+    <div class="wheel-container" id="wheel-wrapper">
+      <canvas id="wheel" width="480" height="480"></canvas>
+      <div class="pointer"></div>
+      <div class="wheel-cap"><div class="wheel-cap-inner"></div></div>
+    </div>
+    <p class="status-line" id="status">Agrega participantes para comenzar</p>
+    <button class="spin-btn" id="spin-btn" disabled onclick="spin()">
+      <span>GIRAR</span>
+    </button>
+  </div>
+
+  <!-- PANEL -->
+  <div class="panel">
+    <div class="panel-title">Participantes</div>
+
+    <!-- Single add -->
+    <div class="input-row">
+      <input class="name-input" id="name-input" type="text" placeholder="Nombre del participante..." maxlength="30"
+        onkeydown="if(event.key==='Enter') addName()">
+      <button class="add-btn" onclick="addName()">ADD</button>
+    </div>
+
+    <!-- Bulk add -->
+    <div class="bulk-wrapper">
+      <div class="bulk-label">Agregar varios (uno por línea)</div>
+      <textarea class="bulk-input" id="bulk-input" placeholder="Juan García&#10;María López&#10;Carlos Ruiz&#10;..."></textarea>
+      <button class="bulk-btn" onclick="addBulk()">+ Agregar todos</button>
+    </div>
+
+    <!-- List -->
+    <div class="list-header">
+      <div>
+        <div class="panel-title" style="border:none;padding:0">Lista</div>
+        <div class="count-badge" id="count">0 participantes</div>
+      </div>
+      <button class="clear-btn" onclick="clearAll()">Limpiar todo</button>
+    </div>
+    <div class="names-list" id="names-list"></div>
+  </div>
+</main>
+
+<!-- WINNER -->
+<canvas id="confetti-canvas"></canvas>
+<div id="winner-overlay">
+  <div class="winner-card">
+    <div class="winner-tag">Ganador del Sorteo</div>
+    <div class="winner-divider"></div>
+    <div class="winner-name" id="winner-name">—</div>
+    <div class="winner-sub">Felicidades — Eres parte de la Élite</div>
+    <button class="close-winner" onclick="closeWinner()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+const COLORS = [
+  ['#1a1a2e','#c8b8ff'],['#16213e','#d4a5ff'],['#0d1b2a','#b8d4ff'],
+  ['#1a0e2e','#e0c8ff'],['#0e1a1a','#a8ffd4'],['#1e1a0e','#ffd4a8'],
+  ['#1a1e0e','#d4ffa8'],['#2e1a1a','#ffb8b8'],['#1a2e1a','#b8ffb8'],
+  ['#2e2a1a','#fffab8'],['#0e1e2e','#a8e0ff'],['#2e1a2e','#ffa8ff'],
+  ['#1a2e2e','#a8ffff'],['#2e1e0e','#ffcca8']
+];
+
+let names = [];
+let spinning = false;
+let currentAngle = 0;
+
+const canvas = document.getElementById('wheel');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const CX = W/2, CY = H/2, R = W/2 - 10;
+
+function drawWheel() {
+  ctx.clearRect(0,0,W,H);
+  const n = names.length;
+
+  if(n === 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(CX,CY,R,0,Math.PI*2);
+    ctx.strokeStyle = '#1c1c1c';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#050505';
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.font = '400 12px Montserrat, sans-serif';
+    ctx.fillStyle = '#333';
+    ctx.textAlign = 'center';
+    ctx.letterSpacing = '3px';
+    ctx.fillText('SIN PARTICIPANTES', CX, CY);
+    ctx.restore();
+    return;
+  }
+
+  const slice = (2 * Math.PI) / n;
+
+  for(let i=0; i<n; i++) {
+    const start = currentAngle + i * slice;
+    const end = start + slice;
+    const pair = COLORS[i % COLORS.length];
+
+    // Fill
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(CX,CY);
+    ctx.arc(CX,CY,R,start,end);
+    ctx.closePath();
+    ctx.fillStyle = pair[0];
+    ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+
+    // Text
+    ctx.save();
+    const textAngle = start + slice/2;
+    ctx.translate(CX,CY);
+    ctx.rotate(textAngle);
+    ctx.textAlign = 'right';
+    const maxW = R - 28;
+    const fontSize = n > 18 ? 9 : n > 12 ? 10 : n > 8 ? 11 : 12;
+    ctx.font = `400 ${fontSize}px Montserrat, sans-serif`;
+    ctx.fillStyle = pair[1];
+    ctx.letterSpacing = '1px';
+    let label = names[i];
+    if(ctx.measureText(label).width > maxW) {
+      while(ctx.measureText(label+'…').width > maxW && label.length > 1)
+        label = label.slice(0,-1);
+      label += '…';
+    }
+    ctx.fillText(label, R - 14, fontSize/3);
+    ctx.restore();
+  }
+
+  // Outer ring
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CX,CY,R,0,Math.PI*2);
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+
+  // Purple outer arc accent
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CX,CY,R+5,0,Math.PI*2);
+  ctx.strokeStyle = 'rgba(124,92,191,0.25)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function spin() {
+  if(spinning || names.length < 2) return;
+  spinning = true;
+  document.getElementById('spin-btn').disabled = true;
+  document.getElementById('status').textContent = 'Girando...';
+
+  const extraSpins = (Math.floor(Math.random()*5)+8) * Math.PI * 2;
+  const randomOffset = Math.random() * Math.PI * 2;
+  const target = currentAngle + extraSpins + randomOffset;
+  const duration = 4000 + Math.random()*1500;
+  const start = performance.now();
+  const startAngle = currentAngle;
+
+  function easeOut(t) {
+    return 1 - Math.pow(1-t, 4);
+  }
+
+  function frame(now) {
+    const elapsed = now - start;
+    const t = Math.min(elapsed/duration, 1);
+    currentAngle = startAngle + (target - startAngle) * easeOut(t);
+    drawWheel();
+    if(t < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      currentAngle = target % (Math.PI*2);
+      spinning = false;
+      document.getElementById('spin-btn').disabled = false;
+      showWinner();
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+function showWinner() {
+  const n = names.length;
+  const slice = (Math.PI*2) / n;
+  // Pointer at right side (angle = 0 from positive x-axis)
+  // currentAngle is the rotation applied; winning segment is one where pointer lands
+  const pointerAngle = 0;
+  const normalised = ((pointerAngle - currentAngle) % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+  const winIdx = Math.floor(normalised / slice) % n;
+  const winner = names[winIdx];
+
+  document.getElementById('winner-name').textContent = winner.toUpperCase();
+  document.getElementById('winner-overlay').classList.add('show');
+  document.getElementById('status').textContent = `Ganador: ${winner}`;
+  launchConfetti();
+}
+
+function closeWinner() {
+  document.getElementById('winner-overlay').classList.remove('show');
+  stopConfetti();
+}
+
+// ---- NAMES ----
+function addName() {
+  const input = document.getElementById('name-input');
+  const val = input.value.trim();
+  if(!val) return;
+  names.push(val);
+  input.value = '';
+  updateList();
+  drawWheel();
+}
+
+function addBulk() {
+  const ta = document.getElementById('bulk-input');
+  const lines = ta.value.split('\n').map(l=>l.trim()).filter(l=>l);
+  lines.forEach(l => { if(l) names.push(l); });
+  ta.value = '';
+  updateList();
+  drawWheel();
+}
+
+function removeName(i) {
+  names.splice(i,1);
+  updateList();
+  drawWheel();
+}
+
+function clearAll() {
+  if(!confirm('¿Eliminar todos los participantes?')) return;
+  names = [];
+  updateList();
+  drawWheel();
+}
+
+function updateList() {
+  const list = document.getElementById('names-list');
+  const count = document.getElementById('count');
+  const btn = document.getElementById('spin-btn');
+  const status = document.getElementById('status');
+
+  count.textContent = `${names.length} participante${names.length!==1?'s':''}`;
+  btn.disabled = names.length < 2;
+  if(names.length === 0) status.textContent = 'Agrega participantes para comenzar';
+  else if(names.length === 1) status.textContent = 'Agrega al menos 2 participantes';
+  else status.textContent = `${names.length} participantes listos`;
+
+  list.innerHTML = '';
+  names.forEach((name, i) => {
+    const item = document.createElement('div');
+    item.className = 'name-item';
+    item.innerHTML = `
+      <span class="name-idx">${String(i+1).padStart(2,'0')}</span>
+      <span class="name-text">${escHtml(name)}</span>
+      <button class="remove-btn" onclick="removeName(${i})">×</button>`;
+    list.appendChild(item);
+  });
+
+  list.scrollTop = list.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ---- CONFETTI ----
+const cc = document.getElementById('confetti-canvas');
+const cctx = cc.getContext('2d');
+let particles = [], confettiAnim = null;
+const confettiColors = ['#7c5cbf','#a87fe8','#ffffff','#c9a96e','#d4a5ff','#555','#3a2860'];
+
+function launchConfetti() {
+  cc.width = window.innerWidth;
+  cc.height = window.innerHeight;
+  particles = Array.from({length:120}, () => ({
+    x: Math.random()*cc.width,
+    y: -10,
+    r: Math.random()*5+3,
+    d: Math.random()*3+1,
+    color: confettiColors[Math.floor(Math.random()*confettiColors.length)],
+    tilt: Math.random()*10-10,
+    tiltSpeed: Math.random()*0.1+0.05,
+    tiltAngle: 0,
+    vx: (Math.random()-0.5)*2
+  }));
+  if(confettiAnim) cancelAnimationFrame(confettiAnim);
+  animateConfetti();
+}
+
+function animateConfetti() {
+  cctx.clearRect(0,0,cc.width,cc.height);
+  particles.forEach(p => {
+    p.tiltAngle += p.tiltSpeed;
+    p.y += p.d;
+    p.x += p.vx;
+    p.tilt = Math.sin(p.tiltAngle) * 12;
+    cctx.beginPath();
+    cctx.lineWidth = p.r/2;
+    cctx.strokeStyle = p.color;
+    cctx.moveTo(p.x+p.tilt+p.r/4, p.y);
+    cctx.lineTo(p.x+p.tilt, p.y+p.tilt+p.r/4);
+    cctx.stroke();
+  });
+  particles = particles.filter(p => p.y < cc.height+20);
+  if(particles.length > 0) confettiAnim = requestAnimationFrame(animateConfetti);
+  else cctx.clearRect(0,0,cc.width,cc.height);
+}
+
+function stopConfetti() {
+  if(confettiAnim) cancelAnimationFrame(confettiAnim);
+  cctx.clearRect(0,0,cc.width,cc.height);
+}
+
+// Init
+drawWheel();
+updateList();
+</script>
+</body>
+</html>
